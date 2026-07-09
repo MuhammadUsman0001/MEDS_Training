@@ -1,0 +1,18 @@
+=== RISC-V Simulation Log Analysis ===
+
+Log file: test_data/sample_pass.log
+
+--- Results Summary ---
+Total tests: 2
+Passed: 2
+Failed: 0
+Skipped: 0
+Pass rate: 100.00%
+
+--- Failed Tests ---
+None
+
+--- Timing Statistics ---
+Min time: 0.65s
+Max time: 0.82s
+Avg time: 0.73s

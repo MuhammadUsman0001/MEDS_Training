@@ -1,0 +1,19 @@
+=== RISC-V Simulation Log Analysis ===
+
+Log file: test_data/sample_sim.log
+
+--- Results Summary ---
+Total tests: 10
+Passed: 8
+Failed: 2
+Skipped: 0
+Pass rate: 80.00%
+
+--- Failed Tests ---
+rv32i-branch-equal
+rv32i-memory-alignment
+
+--- Timing Statistics ---
+Min time: 0.52s
+Max time: 1.40s
+Avg time: 0.82s
