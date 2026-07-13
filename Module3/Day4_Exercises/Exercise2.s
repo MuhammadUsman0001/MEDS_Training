@@ -20,8 +20,8 @@ fib:
     mv    s0, a0          # s0 = n
 
     li    t0, 1
-    beq   s0, zero, ret_0   # fib of 0 os 0
-    beq   s0, t0,   ret_1   # fib os 1 is 1 ... fib series starts from 0,1,1,2,3,5...
+    beq   s0, zero, ret_0   # fib of 0 is 0
+    beq   s0, t0,   ret_1   # fib of 1 is 1 (fibonacci series is like 0,1,1,2,3,5...)
 
     addi  a0, s0, -1
     call  fib             # a0 = fib(n-1)
