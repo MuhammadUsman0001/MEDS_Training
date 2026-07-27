@@ -19,7 +19,7 @@ module cache_controller #(
     input  logic [DATA_WIDTH-1:0]   wdata,
 
     // CPU response interface
-    output logic [DATA_WIDTH-1:0]   rdata,      // valid on a read hit, one cycle after req_valid
+    output logic [DATA_WIDTH-1:0]   rdata,       // valid on a read hit, one cycle after req_valid
     output logic                    hit,         // combinational: 1 = current addr is a hit
     output logic                    ready        // registered: 1 = response for the previous request is valid this cycle
 );
