@@ -1,97 +1,119 @@
-// Write policy : write-allocate. On any write, the addressed line's data,
-//                tag, and valid bit are updated unconditionally (a write
-//                always "installs" that address into its mapped line).
-// Read policy  : combinational hit detection; data is registered out on
-//                a hit. On a miss, rdata is not meaningful and hit is low.
-
 module cache_controller #(
-    parameter int ADDR_WIDTH  = 16,   // address bus width
-    parameter int DATA_WIDTH  = 32,   // word width
-    parameter int INDEX_WIDTH = 4     // log2(number of lines); 4 -> 16 lines
-) (
-    input  logic                    clk,
-    input  logic                    rst_n,      // active-low async reset
+    // Parameter definitions 
+    parameter int ADDR_WIDTH      = 16,
+    parameter int DATA_WIDTH      = 32,
+    parameter int WORDS_PER_BLOCK = 4,
+    parameter int NUM_BLOCKS      = 16
+)(
+    input  logic                     clk,
+    input  logic                     rst,
 
-    // CPU request interface
-    input  logic                    req_valid,  // 1 = CPU is issuing a request this cycle
-    input  logic                    req_we,     // 1 = write, 0 = read
-    input  logic [ADDR_WIDTH-1:0]   addr,
-    input  logic [DATA_WIDTH-1:0]   wdata,
+    // CPU interface
+    input  logic                     req_valid,   // 1 = request valid
+    input  logic                     req_type,    // 1 = write, 0 = read
+    input  logic [ADDR_WIDTH-1:0]    address,
+    input  logic [DATA_WIDTH-1:0]    data_in,
 
-    // CPU response interface
-    output logic [DATA_WIDTH-1:0]   rdata,       // valid on a read hit, one cycle after req_valid
-    output logic                    hit,         // combinational: 1 = current addr is a hit
-    output logic                    ready        // registered: 1 = response for the previous request is valid this cycle
+    // Response
+    output logic [DATA_WIDTH-1:0]    data_out,
+    output logic                     done,        // one‑cycle completion pulse
+    output logic                     hit,        
+    output logic                     miss         
 );
 
-    // Derived (localparam) sizing :
-    // One line holds exactly one DATA_WIDTH-bit word, so:
-    // OFFSET_WIDTH = log2(bytes per word) = log2(DATA_WIDTH/8)
-    // TAG_WIDTH    = ADDR_WIDTH - INDEX_WIDTH - OFFSET_WIDTH
+    localparam int INDEX_WIDTH     = $clog2(NUM_BLOCKS);          // 4
+    localparam int OFFSET_WIDTH    = $clog2(WORDS_PER_BLOCK);     // 2
+    localparam int TAG_WIDTH       = ADDR_WIDTH - INDEX_WIDTH - OFFSET_WIDTH; // 10
 
-    localparam int OFFSET_WIDTH = $clog2(DATA_WIDTH/8);
-    localparam int TAG_WIDTH    = ADDR_WIDTH - INDEX_WIDTH - OFFSET_WIDTH;
-    localparam int NUM_LINES    = 1 << INDEX_WIDTH;
+    // Internal signals
+    logic [TAG_WIDTH-1:0]    tag;
+    logic [INDEX_WIDTH-1:0]  index;
+    logic [OFFSET_WIDTH-1:0] offset;
 
-    // Sanity check on parameters at elaboration time
-    initial begin
-        if (TAG_WIDTH <= 0) begin
-            $error("cache_controller: ADDR_WIDTH too small for the given INDEX_WIDTH/DATA_WIDTH (TAG_WIDTH=%0d)", TAG_WIDTH);
-        end
-    end
+    logic wr_en, rd_en;           // derived from FSM
+    logic hit_int;                // internal hit (combinational)
+    logic [DATA_WIDTH-1:0] data_out_int;
 
-    // Storage arrays
-    logic [DATA_WIDTH-1:0] data_array  [0:NUM_LINES-1];
-    logic [TAG_WIDTH-1:0]  tag_array   [0:NUM_LINES-1];
-    logic                  valid_array [0:NUM_LINES-1];
+    // 1. Address Decoder (combinational)
+    assign tag    = address[ADDR_WIDTH-1 : ADDR_WIDTH-TAG_WIDTH];
+    assign index  = address[ADDR_WIDTH-TAG_WIDTH-1 : OFFSET_WIDTH];
+    assign offset = address[OFFSET_WIDTH-1 : 0];
 
-    // Address decoding
-    logic [TAG_WIDTH-1:0]    addr_tag;
-    logic [INDEX_WIDTH-1:0]  addr_index;
-    logic [OFFSET_WIDTH-1:0] addr_offset;
-
-    assign addr_tag    = addr[ADDR_WIDTH-1 -: TAG_WIDTH];
-    assign addr_index  = addr[OFFSET_WIDTH +: INDEX_WIDTH];
-    assign addr_offset = addr[OFFSET_WIDTH-1:0];
+    // 2. Cache Storage (arrays)
+    logic [WORDS_PER_BLOCK-1:0][DATA_WIDTH-1:0] data_array  [NUM_BLOCKS-1:0];
+    logic [TAG_WIDTH-1:0]                       tag_array   [NUM_BLOCKS-1:0];
+    logic                                       valid_array [NUM_BLOCKS-1:0];
 
     // Hit detection (combinational)
-    assign hit = req_valid && valid_array[addr_index] &&
-                 (tag_array[addr_index] == addr_tag);
+    assign hit_int = valid_array[index] && (tag_array[index] == tag);
+    assign hit     = hit_int;
+    assign miss    = !hit_int;
 
-    // Sequential read/write behavior
-    integer i;
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            for (i = 0; i < NUM_LINES; i++) begin
-                valid_array[i] <= 1'b0;
-                tag_array[i]   <= '0;
-                data_array[i]  <= '0;
+    // 3. Cache Controller FSM 
+    typedef enum logic [1:0] { IDLE, READ, WRITE, DONE } state_t;
+    state_t state, next_state;
+
+    // State register
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst)
+            state <= IDLE;
+        else
+            state <= next_state;
+    end
+
+    // Next‑state logic
+    always_comb begin
+        next_state = state;
+        case (state)
+            IDLE: begin
+                if (req_valid)
+                    next_state = req_type ? WRITE : READ;
+                else
+                    next_state = IDLE;
             end
-            rdata <= '0;
-            ready <= 1'b0;
+            READ:  next_state = DONE;
+            WRITE: next_state = DONE;
+            DONE:  next_state = IDLE;
+        endcase
+    end
+
+    // Output logic (controls rd_en, wr_en, done)
+    always_comb begin
+        rd_en = 1'b0;
+        wr_en = 1'b0;
+        done  = 1'b0;
+        case (state)
+            IDLE: ;
+            READ:  rd_en = hit_int;   // only read if hit; on miss, rd_en stays 0
+            WRITE: wr_en = 1'b1;      // write‑allocate: always write (hit or miss)
+            DONE:  done = 1'b1;
+        endcase
+    end
+
+    // 4. Memory operations (sequential)
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            data_out <= '0;
+            for (int i = 0; i < NUM_BLOCKS; i++) begin
+                valid_array[i] <= 1'b0;
+                // tag_array and data_array need not be reset; valid=0 covers them
+            end
         end 
         else begin
-            ready <= 1'b0; // default; asserted below when a request completes
+            // Read (takes priority over write to avoid conflict)
+            if (rd_en) begin
+                data_out <= data_array[index][offset];
+            end
 
-            if (req_valid) begin
-                if (req_we) begin
-                    // Write-allocate: always install this address into its line
-                    data_array[addr_index]  <= wdata;
-                    tag_array[addr_index]   <= addr_tag;
-                    valid_array[addr_index] <= 1'b1;
-                    ready <= 1'b1;
-                end 
-                else begin
-                    // Read
-                    if (hit) begin
-                        rdata <= data_array[addr_index];
-                    end
-                    // On a miss, rdata is left unchanged / don't-care;
-                    // 'hit' is the signal the testbench should check.
-                    ready <= 1'b1;
-                end
+            // Write (write‑allocate: update data, tag, valid)
+            if (wr_en) begin
+                data_array[index][offset] <= data_in;
+                tag_array[index]          <= tag;
+                valid_array[index]        <= 1'b1;
             end
         end
     end
+
+    // data_out is directly the output; if both rd_en and wr_en are 0, it retains its value.
 
 endmodule
