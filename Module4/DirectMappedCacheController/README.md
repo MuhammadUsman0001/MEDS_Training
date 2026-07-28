@@ -1,109 +1,68 @@
-```markdown
 # Direct-Mapped Cache Controller
 
-This project implements a **direct‑mapped cache controller** with a **write‑allocate** policy. It is written in SystemVerilog and includes a full self‑checking testbench. The design is parameterised and can be adapted to different address, data, and cache sizes.
+## Objective
+
+To design and verify a simple parameterized direct‑mapped cache controller in SystemVerilog. The controller accepts CPU read/write requests, determines hits/misses, and performs the appropriate cache operations. This project reinforces cache memory fundamentals, address decoding, tag comparison, and SystemVerilog design/verification.
 
 ---
 
-## Features
+## File Structure
 
-- Direct‑mapped organisation
-- Write‑allocate policy (writes always install the address into the cache)
-- Combines address decoder, storage arrays, and a **3‑state FSM** (`IDLE`, `READ`, `WRITE`, `DONE`)
-- Hit/miss detection is combinational for zero‑cycle feedback
-- Supports 4‑word cache lines (configurable)
-- Fully synthesizable RTL
-
----
-
-## Parameters
-
-| Parameter | Default | Description |
-| :--- | :--- | :--- |
-| `ADDR_WIDTH` | 16 | Address bus width |
-| `DATA_WIDTH` | 32 | Word width (bits) |
-| `WORDS_PER_BLOCK` | 4 | Number of words per cache line |
-| `NUM_BLOCKS` | 16 | Number of cache lines |
-
-Derived parameters (computed automatically):
-- `INDEX_WIDTH`  = log₂(NUM_BLOCKS)
-- `OFFSET_WIDTH` = log₂(WORDS_PER_BLOCK)
-- `TAG_WIDTH`    = ADDR_WIDTH – INDEX_WIDTH – OFFSET_WIDTH
-
----
-
-## Module Interface
-
-```systemverilog
-module cache_controller #(
-    parameter int ADDR_WIDTH      = 16,
-    parameter int DATA_WIDTH      = 32,
-    parameter int WORDS_PER_BLOCK = 4,
-    parameter int NUM_BLOCKS      = 16
-)(
-    input  logic                     clk,
-    input  logic                     rst,                // active‑high async reset
-    input  logic                     req_valid,
-    input  logic                     req_type,           // 1 = write, 0 = read
-    input  logic [ADDR_WIDTH-1:0]    address,
-    input  logic [DATA_WIDTH-1:0]    data_in,
-    output logic [DATA_WIDTH-1:0]    data_out,
-    output logic                     done,               // one‑cycle completion pulse
-    output logic                     hit,
-    output logic                     miss
-);
+```
+DirectMappedCacheController/
+├── waveforms/
+│   └── cache_waveform.png       # Waveform screenshot from EPWave
+├── cache_controller.sv          # RTL implementation (parameterised)
+├── tb_cache_controller.sv       # Self‑checking testbench
+└── README.md                    # This file
 ```
 
 ---
 
-## How to Simulate
+## Parameters (from Project Specification)
 
-### On EDA Playground
+| Parameter      | Value | Description                      |
+| :------------- | :---: | :------------------------------- |
+| `ADDR_WIDTH`   | 16    | Address bus width                |
+| `DATA_WIDTH`   | 32    | Word width (bits)                |
+| `INDEX_WIDTH`  | 4     | log₂(16 lines) – direct‑mapped   |
+| `NUM_BLOCKS`   | 16    | Number of cache lines            |
+| `WORDS_PER_BLOCK` | 4  | Words per cache line             |
 
-1. Copy the entire `cache_controller` module into the **design.sv** pane.
-2. Copy the testbench (`cache_controller_tb`) into the **testbench.sv** pane.
-3. Set:
-   - Language / Testbench: `SystemVerilog`
-   - Tool: `Synopsys VCS` or `Aldec Riviera-PRO`
-   - Tick `Open EPWave after run`
-4. Click **Run**. The simulation log will display `PASS`/`FAIL` messages and a final summary.
-5. Waveforms (`dump.vcd`) are generated for debugging.
-
-### Using a Local Simulator (e.g., VCS, ModelSim)
-
-1. Save the RTL and testbench in separate files (or combined).
-2. Compile with SystemVerilog support:
-   ```bash
-   vlog -sv cache_controller.sv tb_cache_controller.sv
-   ```
-3. Run the simulation:
-   ```bash
-   vsim -c tb_cache_controller -do "run -all; exit"
-   ```
-   or, for VCS:
-   ```bash
-   simv
-   ```
-4. View the waveform with `gtkwave dump.vcd`.
+**Derived (calculated automatically):**
+- `TAG_WIDTH`    = `ADDR_WIDTH - INDEX_WIDTH - OFFSET_WIDTH` = 16 – 4 – 2 = 10 bits
+- `OFFSET_WIDTH` = log₂(`WORDS_PER_BLOCK`) = 2 bits
 
 ---
 
-## Testbench Description
+## Implementation Overview
 
-The self‑checking testbench verifies the following cases:
+### Components Implemented
+
+| Component          | Description                                                                 |
+| :----------------- | :-------------------------------------------------------------------------- |
+| **Address Decoder**| Splits `address` into `tag`, `index`, `offset` using combinational logic.   |
+| **Data Array**     | 2D array: `[NUM_BLOCKS-1:0][WORDS_PER_BLOCK-1:0]` of `DATA_WIDTH`-bit words.|
+| **Tag Array**      | Stores `TAG_WIDTH`-bit tags for each line.                                  |
+| **Valid‑bit Array**| One bit per line indicating valid data.                                    |
+| **Hit/Miss Logic** | Combinational: `valid[index] && (tag_array[index] == tag)`.                |
+| **Cache Controller**| FSM with states `IDLE`, `READ`, `WRITE`, `DONE`; controls `rd_en`, `wr_en`, `done`. |
+| **Write Policy**   | **Write‑allocate**: a write always installs the address (updates data, tag, valid). |
+
+---
+
+## Self‑Checking Testbench
+
+The testbench (`tb_cache_controller.sv`) verifies the following cases automatically, printing `[PASS]` or `[FAIL]` for each:
 
 | Test | Description |
 | :--- | :--- |
-| 1 | Write to an empty line, then read back – **hit** expected. |
-| 2 | Read a different, never‑written line – **miss** expected. |
-| 3 | Two addresses mapping to the same index but with different tags – second write evicts the first; verify hit/miss accordingly. |
-| 4 | Multiple writes to different indices – all reads should **hit**. |
+| **1** | Write to an empty line, then read back – **hit** expected. |
+| **2** | Read an unwritten line (different index) – **miss** expected. |
+| **3** | Two addresses mapping to the same index with different tags – second write evicts the first; verify hit/miss. |
+| **4** | Multiple writes to different indices – all reads should **hit**. |
 
-The testbench uses helper tasks (`write_cache`, `read_cache`, `check_hit`, `check_miss`) and prints `[PASS]` or `[FAIL]` for each check. At the end, a summary with pass/fail count is displayed.
-
----
-
-## Expected Output
+**Simulation Output (Expected):**
 
 ```
 === Cache Testbench ===
@@ -132,24 +91,42 @@ RESULT: ALL TESTS PASSED
 
 ---
 
-## File Structure
+## How to Simulate
 
+### On EDA Playground
+1. Paste `cache_controller.sv` into the **design.sv** pane.
+2. Paste `tb_cache_controller.sv` into the **testbench.sv** pane.
+3. Set Language = `SystemVerilog`, Tool = `Synopsys VCS` (or `Aldec Riviera-PRO`).
+4. Tick **Open EPWave after run**.
+5. Click **Run** – the log will display all PASS/FAIL messages.
+6. Save the waveform screenshot as `waveforms/cache_waveform.png`.
+
+### Using a Local Simulator (e.g., VCS, ModelSim)
+```bash
+vlog -sv cache_controller.sv tb_cache_controller.sv
+vsim -c tb_cache_controller -do "run -all; exit"
+# or
+simv
 ```
-.
-├── cache_controller.sv      # Main RTL module (parameterised)
-├── cache_controller_tb.sv   # Self‑checking testbench
-└── README.md                # This file
-```
+
+---
+
+## Deliverables
+
+- Public Git repository with the above file structure.
+- All RTL, testbench, README, and waveform screenshot included.
+- Code is synthesizable, self‑checking, and fully commented (only essential comments).
 
 ---
 
 ## Author
 
-Abdul Rafay (as per original code attribution)
+**Muhammad Usman**  
+MEDS Lab – Module 4 Project  
+Summer Training Programme 2026 • Cohort 4
 
 ---
 
 ## License
 
-This project is provided for educational purposes. Feel free to use and modify it for learning and research.
-```
+For educational purposes only.
