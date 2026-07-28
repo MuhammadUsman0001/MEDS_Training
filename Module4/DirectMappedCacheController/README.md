@@ -10,6 +10,10 @@ To design and verify a simple parameterized direct‑mapped cache controller in 
 
 ```
 DirectMappedCacheController/
+├── docs/
+│   └── BlockDiagram.png
+│   └── AddressBreakdown.png
+│   └── cache_controller_log_result.png     
 ├── waveforms/
 │   └── cache_waveform.png       # Waveform screenshot from EPWave
 ├── cache_controller.sv          # RTL implementation (parameterised)
