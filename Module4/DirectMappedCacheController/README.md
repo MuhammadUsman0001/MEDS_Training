@@ -11,13 +11,13 @@ To design and verify a simple parameterized direct‑mapped cache controller in 
 ```
 DirectMappedCacheController/
 ├── docs/
-│   └── BlockDiagram.png
-│   └── AddressBreakdown.png
-│   └── cache_controller_log_result.png     
+│   ├── BlockDiagram.png
+│   ├── AddressBreakdown.png
+│   └── cache_log_result.png     
 ├── waveforms/
 │   └── cache_waveform.png       # Waveform screenshot from EPWave
-├── cache_controller.sv          # RTL implementation (parameterised)
-├── tb_cache_controller.sv       # Self‑checking testbench
+├── cache.sv                     # RTL implementation (parameterised)
+├── cache_tb.sv                  # Self‑checking testbench
 └── README.md                    # This file
 ```
 
@@ -25,13 +25,13 @@ DirectMappedCacheController/
 
 ## Parameters (from Project Specification)
 
-| Parameter      | Value | Description                      |
-| :------------- | :---: | :------------------------------- |
-| `ADDR_WIDTH`   | 16    | Address bus width                |
-| `DATA_WIDTH`   | 32    | Word width (bits)                |
-| `INDEX_WIDTH`  | 4     | log₂(16 lines) – direct‑mapped   |
-| `NUM_BLOCKS`   | 16    | Number of cache lines            |
-| `WORDS_PER_BLOCK` | 4  | Words per cache line             |
+| Parameter           | Value | Description                        |
+| :------------------ | :---: | :--------------------------------- |
+| `ADDR_WIDTH`        | 16    | Address bus width                  |
+| `DATA_WIDTH`        | 32    | Word width (bits)                  |
+| `INDEX_WIDTH`       | 4     | log₂(16 lines) – direct‑mapped     |
+| `NUM_BLOCKS`        | 16    | Number of cache lines              |
+| `WORDS_PER_BLOCK`   | 4     | Words per cache line               |
 
 **Derived (calculated automatically):**
 - `TAG_WIDTH`    = `ADDR_WIDTH - INDEX_WIDTH - OFFSET_WIDTH` = 16 – 4 – 2 = 10 bits
@@ -43,21 +43,21 @@ DirectMappedCacheController/
 
 ### Components Implemented
 
-| Component          | Description                                                                 |
-| :----------------- | :-------------------------------------------------------------------------- |
-| **Address Decoder**| Splits `address` into `tag`, `index`, `offset` using combinational logic.   |
-| **Data Array**     | 2D array: `[NUM_BLOCKS-1:0][WORDS_PER_BLOCK-1:0]` of `DATA_WIDTH`-bit words.|
-| **Tag Array**      | Stores `TAG_WIDTH`-bit tags for each line.                                  |
-| **Valid‑bit Array**| One bit per line indicating valid data.                                    |
-| **Hit/Miss Logic** | Combinational: `valid[index] && (tag_array[index] == tag)`.                |
-| **Cache Controller**| FSM with states `IDLE`, `READ`, `WRITE`, `DONE`; controls `rd_en`, `wr_en`, `done`. |
-| **Write Policy**   | **Write‑allocate**: a write always installs the address (updates data, tag, valid). |
+| Component            | Description                                                                 |
+| :------------------- | :-------------------------------------------------------------------------- |
+| **Address Decoder**  | Splits `address` into `tag`, `index`, `offset` using combinational logic.   |
+| **Data Array**       | 2D array: `[NUM_BLOCKS-1:0][WORDS_PER_BLOCK-1:0]` of `DATA_WIDTH`-bit words.|
+| **Tag Array**        | Stores `TAG_WIDTH`-bit tags for each line.                                  |
+| **Valid‑bit Array**  | One bit per line indicating valid data.                                    |
+| **Hit/Miss Logic**   | Combinational: `valid[index] && (tag_array[index] == tag)`.                |
+| **Cache Controller** | FSM with states `IDLE`, `READ`, `WRITE`, `DONE`; controls `rd_en`, `wr_en`, `done`. |
+| **Write Policy**     | **Write‑allocate**: a write always installs the address (updates data, tag, valid). |
 
 ---
 
 ## Self‑Checking Testbench
 
-The testbench (`tb_cache_controller.sv`) verifies the following cases automatically, printing `[PASS]` or `[FAIL]` for each:
+The testbench (`cache_tb.sv`) verifies the following cases automatically, printing `[PASS]` or `[FAIL]` for each:
 
 | Test | Description |
 | :--- | :--- |
@@ -98,8 +98,8 @@ RESULT: ALL TESTS PASSED
 ## How to Simulate
 
 ### On EDA Playground
-1. Paste `cache_controller.sv` into the **design.sv** pane.
-2. Paste `tb_cache_controller.sv` into the **testbench.sv** pane.
+1. Paste `cache.sv` into the **design.sv** pane.
+2. Paste `cache_tb.sv` into the **testbench.sv** pane.
 3. Set Language = `SystemVerilog`, Tool = `Synopsys VCS` (or `Aldec Riviera-PRO`).
 4. Tick **Open EPWave after run**.
 5. Click **Run** – the log will display all PASS/FAIL messages.
@@ -107,8 +107,8 @@ RESULT: ALL TESTS PASSED
 
 ### Using a Local Simulator (e.g., VCS, ModelSim)
 ```bash
-vlog -sv cache_controller.sv tb_cache_controller.sv
-vsim -c tb_cache_controller -do "run -all; exit"
+vlog -sv cache.sv cache_tb.sv
+vsim -c cache_tb -do "run -all; exit"
 # or
 simv
 ```
