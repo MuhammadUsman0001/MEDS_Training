@@ -71,6 +71,13 @@ module vending_machine (
         endcase
     end
 
+    // zero_stock and low_balance signals given to FSM
+    logic zero_stock;
+    logic low_balance;
+
+    assign zero_stock = (sel_stock == 4'd0);
+    assign low_balance = (current_balance < sel_price);
+
     // State register (synchronous reset)
     always_ff @(posedge clk) begin
         if (reset)
@@ -92,9 +99,9 @@ module vending_machine (
             S_CHECK: begin
                 if (cancel)
                     next_state = S_CANCEL;
-                else if (sel_stock == 4'd0)
+                else if (zero_stock)
                     next_state = S_OUT_OF_STOCK;
-                else if (current_balance < sel_price)
+                else if (low_balance)
                     next_state = S_INSUFFICIENT;
                 else
                     next_state = S_DISPENSE;
