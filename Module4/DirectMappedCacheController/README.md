@@ -12,6 +12,7 @@ To design and verify a simple parameterized direct‑mapped cache controller in 
 DirectMappedCacheController/
 ├── docs/
 │   ├── BlockDiagram.png
+│   ├── FSM.png
 │   ├── AddressBreakdown.png
 │   └── cache_log_result.png     
 ├── waveforms/
