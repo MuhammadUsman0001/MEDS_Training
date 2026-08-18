@@ -5,32 +5,28 @@
 <h1 align="center">MEDS Training Repository</h1>
 
 <p align="center">
-  <b>Maktab-e-Digital Systems — 8-Week Intensive Training Program</b>
+  <b>Maktab-e-Digital Systems — Training Program</b>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/SystemVerilog-2017-brightgreen?style=flat-square&logo=verilog" alt="SystemVerilog">
-  <img src="https://img.shields.io/badge/RISC_V-ISA-blue?style=flat-square&logo=riscv" alt="RISC-V">
-  <img src="https://img.shields.io/badge/C-Language-lightgrey?style=flat-square&logo=c" alt="C">
-  <img src="https://img.shields.io/badge/Assembly-RV32I-orange?style=flat-square" alt="Assembly">
-  <img src="https://img.shields.io/badge/Bash-Scripting-green?style=flat-square&logo=gnu-bash" alt="Bash">
-  <img src="https://img.shields.io/badge/Makefile-Build-yellow?style=flat-square&logo=gnu" alt="Makefile">
+  <img src="https://img.shields.io/badge/SystemVerilog-blue?style=flat-square&logo=verilog" alt="SystemVerilog">
+  <img src="https://img.shields.io/badge/RISC_V-darkblue?style=flat-square&logo=riscv" alt="RISC-V">
+  <img src="https://img.shields.io/badge/C-lightgrey?style=flat-square&logo=c" alt="C">
+  <img src="https://img.shields.io/badge/Assembly-orange?style=flat-square" alt="Assembly">
+  <img src="https://img.shields.io/badge/Bash-black?style=flat-square&logo=gnu-bash" alt="Bash">
+  <img src="https://img.shields.io/badge/Makefile-grey?style=flat-square&logo=gnu" alt="Makefile">
 </p>
 
 ---
 
-<p align="center">
-  <img src="https://github-stats-extended.vercel.app/api/top-langs/?username=MuhammadUsman0001&repo=MEDS_Training&layout=compact&theme=default" alt="Top Languages">
-</p>
-
 ## 📚 Training Curriculum
 
-| Module | Topic | Duration |
-|--------|-------|----------|
-| **Module 1** | Development Environment, Shell & Git | Week 1 |
-| **Module 2** | C Language for Hardware Engineers | Week 2 |
-| **Module 3** | RISC-V Instruction Set Architecture | Week 3 |
-| **Module 4** | SystemVerilog for Digital Design | Week 4 |
+| Module | Topic |
+|--------|-------|
+| **Module 1** | Development Environment, Shell & Git |
+| **Module 2** | C Language for Hardware Engineers |
+| **Module 3** | RISC-V Instruction Set Architecture |
+| **Module 4** | SystemVerilog for Digital Design |
 
 **Additional Workshops:**
 - RISC-V Processor in a Day
@@ -49,6 +45,7 @@
 | **Venus** | RISC-V assembly simulation |
 | **Git/GitHub** | Version control |
 | **GCC** | C compilation |
+| **GDB** | Debugging C programs |
 | **Valgrind** | Memory debugging |
 
 ---
@@ -64,19 +61,8 @@ MEDS_Training/
 │   └── DirectMappedCacheController/  # Project: Cache Controller
 ├── Onur Mutlu's Lectures Documentation/
 ├── RISC-V_Processor_Workshop/  # "RISC-V in a Day"
-└── SystemVerilog_Workshop/     # Practice tasks
+└── SystemVerilog_Workshop/     # Practice Tasks
 ```
-
----
-
-## 🚀 Getting Started
-
-```bash
-git clone https://github.com/MuhammadUsman0001/MEDS_Training.git
-cd MEDS_Training
-```
-
-Navigate to any module directory for specific exercises and assignments.
 
 ---
 
@@ -95,18 +81,4 @@ Navigate to any module directory for specific exercises and assignments.
 ## 📝 Author
 
 **Muhammad Usman**  
-MEDS Training Program Mentee  
-[GitHub](https://github.com/MuhammadUsman0001)
-
----
-
-## 📄 License
-
-⚠️ This repository does not currently have a LICENSE file. All content is for educational purposes as part of the MEDS program.
-
----
-
-## 🙏 Acknowledgments
-
-**Maktab-e-Digital Systems (MEDS Lab)** — Department of Electrical Engineering, UET Lahore  
-**Mentors:** Umer Shahid, Shehzeen Malik, Aman Murad
+MEDS Training Program Mentee
