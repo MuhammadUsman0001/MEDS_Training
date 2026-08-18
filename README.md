@@ -20,7 +20,7 @@
 ---
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=MuhammadUsman0001&repo=MEDS_Training&layout=compact&theme=default" alt="Top Languages">
+  <img src="https://github-stats-extended.vercel.app/api/top-langs/?username=MuhammadUsman0001&repo=MEDS_Training&layout=compact&theme=default" alt="Top Languages">
 </p>
 
 ## 📚 Training Curriculum
